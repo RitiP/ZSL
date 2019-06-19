@@ -8,6 +8,7 @@ from toch.autograd import Variable
 import numpy
 import argparse
 import os
+import time
 
 dataset = 'AWA2'
 path = '../../rawDatasets/zsl_summarized/data/' + dataset + '/'
@@ -53,13 +54,14 @@ def divide_batches(train_data, n=64):
 
 def findKNN(prediction, vecs):
     distances = cdist(prediction, vecs, 'cosine')
-    preds = np.argsort(distances, axis=1)
+    preds = numpy.argsort(distances, axis=1)
     return preds
 
-def trainW2A(model, word_vec, attr_vec, learning_rate, rf):
+
+def trainW2A(learning_rate):
     model = Model.W2AModel(300, 85).cuda()
     criterion = nn.MSELoss()
-    optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate, weight_decay=1e-5)
+    optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=1e-5)
 
     for epoch in range(num_epochs):
         for data in loader_tr:
@@ -110,7 +112,7 @@ def trainAE(learning_rate, loss_lambda):
     # create a model of Autoencoder
     model = Model.AEModel(85, 2048).cuda()
     criterion = nn.MSELoss()
-    optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate, weight_decay=1e-5)
+    optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=1e-5)
 
     for epoch in range(num_epochs):
         for data in loader_tr:
@@ -175,6 +177,7 @@ def testAEModel():
 
     print("ZSL Accuracy is =" + str(acc))
 
+
 def get_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('--dataset', type=string, default='AWA2', help='Datset to train and test the code on')
@@ -184,12 +187,23 @@ def get_args():
     args = parser.parse_args()
     return args
 
+
 if __name__ == "__main__":
     args = get_args()
 
+    timestr = time.strftime("%d-%m-%Y-%H:%M:%S")
+    args.dest_path = args.dest_path.join(timestr)
     save_path = os.path.dirname(os.path.abspath(__file__)).join(args.dest_path)
     learning_rate = args.lr
     dataset = args.dataset
+
+    if not os.path.exits(save_path):
+        os.makedirs(save_path)
+
+    trainAE(learning_rate=learning_rate, loss_lambda=0.01)
+
+    testAEModel()
+
 
 
 
